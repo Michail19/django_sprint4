@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 
 
 class PublishedModel(models.Model):
@@ -78,7 +79,8 @@ class Post(PublishedModel):
     author = models.ForeignKey(
         get_user_model(),
         on_delete=models.CASCADE,
-        verbose_name='Автор публикации'
+        verbose_name='Автор публикации',
+        related_name='posts'  # Добавляем related_name для удобства
     )
     location = models.ForeignKey(
         Location,
@@ -93,11 +95,86 @@ class Post(PublishedModel):
         null=True,
         verbose_name='Категория'
     )
+    # Добавляем поле для изображений
+    image = models.ImageField(
+        'Изображение',
+        upload_to='posts_images/',
+        blank=True,
+        null=True,
+        help_text='Загрузите изображение для публикации'
+    )
 
     class Meta:
         verbose_name = 'публикация'
         verbose_name_plural = 'Публикации'
         ordering = ['-pub_date']
+        # Для обеспечения уникальности slug (если будете использовать)
+        # unique_together = ['author', 'title']
 
     def __str__(self):
         return self.title
+
+    @property
+    def comment_count(self):
+        """Количество комментариев к посту."""
+        return self.comments.count()
+
+    def is_published_now(self):
+        """Проверка, опубликован ли пост в данный момент."""
+        return self.is_published and self.pub_date <= timezone.now()
+
+    def can_be_viewed_by(self, user):
+        """
+        Проверка, может ли пользователь просматривать пост.
+        Автор видит все свои посты, остальные - только опубликованные.
+        """
+        if user == self.author:
+            return True
+        return self.is_published_now() and self.category.is_published
+
+
+class Comment(models.Model):
+    """Модель комментария к публикации."""
+
+    text = models.TextField(
+        'Текст комментария',
+        help_text='Введите текст комментария'
+    )
+    post = models.ForeignKey(
+        Post,
+        on_delete=models.CASCADE,
+        verbose_name='Пост',
+        related_name='comments'  # Для обратного доступа Post.comments.all()
+    )
+    author = models.ForeignKey(
+        get_user_model(),
+        on_delete=models.CASCADE,
+        verbose_name='Автор комментария',
+        related_name='comments'  # Для обратного доступа User.comments.all()
+    )
+    created_at = models.DateTimeField(
+        'Дата публикации',
+        auto_now_add=True
+    )
+    updated_at = models.DateTimeField(
+        'Дата последнего редактирования',
+        auto_now=True,
+        null=True,
+        blank=True
+    )
+
+    class Meta:
+        verbose_name = 'комментарий'
+        verbose_name_plural = 'Комментарии'
+        ordering = ['created_at']  # Сортировка по времени создания (старые -> новые)
+
+    def __str__(self):
+        return f'Комментарий {self.author} к посту "{self.post.title}"'
+
+    def can_be_edited_by(self, user):
+        """Проверка, может ли пользователь редактировать комментарий."""
+        return user == self.author
+
+    def can_be_deleted_by(self, user):
+        """Проверка, может ли пользователь удалить комментарий."""
+        return user == self.author

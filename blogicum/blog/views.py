@@ -1,83 +1,70 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.utils import timezone
+from django.core.paginator import Paginator
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.views.generic import CreateView, UpdateView, DeleteView
+from django.urls import reverse, reverse_lazy
+from django.db.models import Count
+from django.core.mail import send_mail
+from django.conf import settings
+from django.contrib import messages
 
-from .models import Post, Category
-
-
-# posts = [
-#     {
-#         'id': 0,
-#         'location': 'Остров отчаянья',
-#         'date': '30 сентября 1659 года',
-#         'category': 'travel',
-#         'text': '''Наш корабль, застигнутый в открытом море
-#                 страшным штормом, потерпел крушение.
-#                 Весь экипаж, кроме меня, утонул; я же,
-#                 несчастный Робинзон Крузо, был выброшен
-#                 полумёртвым на берег этого проклятого острова,
-#                 который назвал островом Отчаяния.''',
-#     },
-#     {
-#         'id': 1,
-#         'location': 'Остров отчаянья',
-#         'date': '1 октября 1659 года',
-#         'category': 'not-my-day',
-#         'text': '''Проснувшись поутру, я увидел, что наш корабль сняло
-#                 с мели приливом и пригнало гораздо ближе к берегу.
-#                 Это подало мне надежду, что, когда ветер стихнет,
-#                 мне удастся добраться до корабля и запастись едой и
-#                 другими необходимыми вещами. Я немного приободрился,
-#                 хотя печаль о погибших товарищах не покидала меня.
-#                 Мне всё думалось, что, останься мы на корабле, мы
-#                 непременно спаслись бы. Теперь из его обломков мы могли бы
-#                 построить баркас, на котором и выбрались бы из этого
-#                 гиблого места.''',
-#     },
-#     {
-#         'id': 2,
-#         'location': 'Остров отчаянья',
-#         'date': '25 октября 1659 года',
-#         'category': 'not-my-day',
-#         'text': '''Всю ночь и весь день шёл дождь и дул сильный
-#                 порывистый ветер. 25 октября.  Корабль за ночь разбило
-#                 в щепки; на том месте, где он стоял, торчат какие-то
-#                 жалкие обломки,  да и те видны только во время отлива.
-#                 Весь этот день я хлопотал  около вещей: укрывал и
-#                 укутывал их, чтобы не испортились от дождя.''',
-#     },
-# ]
+from .models import Post, Category, Comment
+from .forms import PostForm, CommentForm
 
 
 def index(request):
     """Главная страница блога - все посты"""
-    posts = Post.objects.filter(
+    post_list = Post.objects.filter(
         is_published=True,
         category__is_published=True,
         pub_date__lte=timezone.now()
     ).select_related('category', 'location', 'author').order_by('-pub_date')
 
+    # Пагинация
+    paginator = Paginator(post_list, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
     template = 'blog/index.html'
     context = {
-        'post_list': posts[:5][::-1],
+        'page_obj': page_obj,
     }
     return render(request, template, context)
 
 
-def post_detail(request, id):
+def post_detail(request, post_id):
     """Детальная страница поста"""
-    # Находим пост по ID
-    post = get_object_or_404(
-        Post.objects.filter(
-            is_published=True,
-            category__is_published=True,
-            pub_date__lte=timezone.now()
-        ).select_related('category', 'location', 'author'),
-        pk=id
-    )
+    # Для автора показываем все посты, для остальных - только опубликованные
+    if request.user.is_authenticated:
+        post = get_object_or_404(
+            Post.objects.filter(author=request.user).select_related('category', 'location', 'author'),
+            pk=post_id
+        )
+    else:
+        post = get_object_or_404(
+            Post.objects.filter(
+                is_published=True,
+                category__is_published=True,
+                pub_date__lte=timezone.now()
+            ).select_related('category', 'location', 'author'),
+            pk=post_id
+        )
+
+    # Комментарии к посту
+    comments = post.comments.all()
+
+    # Форма для добавления комментария
+    comment_form = None
+    if request.user.is_authenticated:
+        comment_form = CommentForm()
 
     template = 'blog/detail.html'
     context = {
         'post': post,
+        'comments': comments,
+        'comment_form': comment_form,
     }
     return render(request, template, context)
 
@@ -89,19 +76,180 @@ def category_posts(request, category_slug):
         slug=category_slug
     )
 
-    posts = Post.objects.filter(
+    post_list = Post.objects.filter(
         category=category,
         is_published=True,
         pub_date__lte=timezone.now()
     ).select_related('category', 'location', 'author').order_by('-pub_date')
 
-    # filtered_posts = [post for post in posts
-    #                   if post['category'] == category_slug]
+    # Пагинация
+    paginator = Paginator(post_list, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
 
     template = 'blog/category.html'
     context = {
         'category': category,
-        'category_slug': category_slug,
-        'post_list': posts,
+        'page_obj': page_obj,
     }
     return render(request, template, context)
+
+
+class PostCreateView(LoginRequiredMixin, CreateView):
+    """Создание нового поста"""
+    model = Post
+    form_class = PostForm
+    template_name = 'blog/create.html'
+
+    def form_valid(self, form):
+        form.instance.author = self.request.user
+        response = super().form_valid(form)
+
+        # Если пост отложенный, отправляем уведомление
+        if form.instance.pub_date > timezone.now():
+            send_mail(
+                'Пост запланирован',
+                f'Ваш пост "{form.instance.title}" будет опубликован {form.instance.pub_date.strftime("%d.%m.%Y %H:%M")}',
+                settings.DEFAULT_FROM_EMAIL,
+                [self.request.user.email],
+                fail_silently=True,
+            )
+
+        messages.success(self.request, 'Пост успешно создан!')
+        return response
+
+    def get_success_url(self):
+        return reverse('profile', kwargs={'username': self.request.user.username})
+
+
+class PostUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+    """Редактирование поста"""
+    model = Post
+    form_class = PostForm
+    template_name = 'blog/create.html'
+    pk_url_kwarg = 'post_id'
+
+    def test_func(self):
+        post = self.get_object()
+        return self.request.user == post.author
+
+    def handle_no_permission(self):
+        post = self.get_object()
+        return redirect('post_detail', post_id=post.id)
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, 'Пост успешно отредактирован!')
+        return response
+
+    def get_success_url(self):
+        return reverse('post_detail', kwargs={'post_id': self.object.id})
+
+
+@login_required
+def delete_post(request, post_id):
+    """Удаление поста"""
+    post = get_object_or_404(Post, id=post_id, author=request.user)
+
+    if request.method == 'POST':
+        post.delete()
+        messages.success(request, 'Пост успешно удален!')
+        return redirect('profile', username=request.user.username)
+
+    # Отображаем страницу подтверждения удаления
+    return render(request, 'blog/detail.html', {
+        'post': post,
+        'confirm_delete': True
+    })
+
+
+@login_required
+def add_comment(request, post_id):
+    """Добавление комментария"""
+    post = get_object_or_404(Post, id=post_id)
+
+    if request.method == 'POST':
+        form = CommentForm(request.POST)
+        if form.is_valid():
+            comment = form.save(commit=False)
+            comment.post = post
+            comment.author = request.user
+            comment.save()
+
+            # Отправляем уведомление автору поста
+            if post.author.email and post.author != request.user:
+                send_mail(
+                    'Новый комментарий',
+                    f'К вашему посту "{post.title}" добавили новый комментарий.',
+                    settings.DEFAULT_FROM_EMAIL,
+                    [post.author.email],
+                    fail_silently=True,
+                )
+
+            messages.success(request, 'Комментарий успешно добавлен!')
+
+    return redirect('post_detail', post_id=post_id)
+
+
+@login_required
+def edit_comment(request, post_id, comment_id):
+    """Редактирование комментария"""
+    comment = get_object_or_404(Comment, id=comment_id, author=request.user)
+
+    if request.method == 'POST':
+        form = CommentForm(request.POST, instance=comment)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Комментарий успешно отредактирован!')
+            return redirect('post_detail', post_id=post_id)
+    else:
+        form = CommentForm(instance=comment)
+
+    context = {
+        'form': form,
+        'post_id': post_id,
+        'comment': comment,
+        'editing_comment': True,
+    }
+    return render(request, 'blog/detail.html', context)
+
+
+@login_required
+def delete_comment(request, post_id, comment_id):
+    """Удаление комментария"""
+    comment = get_object_or_404(Comment, id=comment_id, author=request.user)
+
+    if request.method == 'POST':
+        comment.delete()
+        messages.success(request, 'Комментарий успешно удален!')
+        return redirect('post_detail', post_id=post_id)
+
+    # Отображаем страницу подтверждения удаления
+    return render(request, 'blog/detail.html', {
+        'post': comment.post,
+        'comment_to_delete': comment
+    })
+
+
+# Вспомогательные функции для работы с отложенными постами
+def get_posts_for_user(user):
+    """Возвращает посты для конкретного пользователя"""
+    if user.is_authenticated:
+        return Post.objects.filter(author=user).select_related('category', 'location', 'author')
+    else:
+        return Post.objects.filter(
+            is_published=True,
+            category__is_published=True,
+            pub_date__lte=timezone.now()
+        ).select_related('category', 'location', 'author')
+
+
+def send_email_notification(subject, message, recipient):
+    """Отправка email уведомления"""
+    send_mail(
+        subject,
+        message,
+        settings.DEFAULT_FROM_EMAIL,
+        [recipient],
+        fail_silently=True,
+    )
