@@ -5,7 +5,10 @@ from . import views
 app_name = 'pages'
 
 urlpatterns = [
-    path('403csrf/', csrf_failure, name='csrf_failure'),
-    path('about/', views.about, name='about'),
-    path('rules/', views.rules, name='rules'),
+    # Страница ошибки CSRF
+    path('403csrf/', views.CsrfFailureView.as_view(), name='csrf_failure'),
+
+    # Статические страницы с использованием CBV
+    path('about/', views.AboutView.as_view(), name='about'),
+    path('rules/', views.RulesView.as_view(), name='rules'),
 ]
