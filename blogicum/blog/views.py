@@ -1,17 +1,16 @@
-from django.shortcuts import render, get_object_or_404, redirect
-from django.utils import timezone
-from django.core.paginator import Paginator
-from django.contrib.auth.decorators import login_required
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.views.generic import CreateView, UpdateView, DeleteView
-from django.urls import reverse, reverse_lazy
-from django.db.models import Count
-from django.core.mail import send_mail
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.core.mail import send_mail
+from django.core.paginator import Paginator
+from django.shortcuts import render, get_object_or_404, redirect
+from django.urls import reverse
+from django.utils import timezone
+from django.views.generic import CreateView, UpdateView
 
-from .models import Post, Category, Comment
 from .forms import PostForm, CommentForm
+from .models import Post, Category, Comment
 
 
 def index(request):
@@ -147,6 +146,11 @@ class PostUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         messages.success(self.request, 'Пост успешно отредактирован!')
         return response
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+
     def get_success_url(self):
         return reverse('blog:post_detail', kwargs={'post_id': self.object.id})
 
@@ -161,9 +165,14 @@ def delete_post(request, post_id):
         messages.success(request, 'Пост успешно удален!')
         return redirect('users:profile', username=request.user.username)  # Используем namespace
 
+    comment_form = None
+    if request.user.is_authenticated:
+        comment_form = CommentForm()
+
     # Отображаем страницу подтверждения удаления
     return render(request, 'blog/detail.html', {
         'post': post,
+        'form': comment_form,
         'confirm_delete': True
     })
 
@@ -211,13 +220,13 @@ def edit_comment(request, post_id, comment_id):
     else:
         form = CommentForm(instance=comment)
 
-    context = {
+    # Используем шаблон comment.html для редактирования
+    return render(request, 'blog/comment.html', {
         'form': form,
         'post': post,
         'comment': comment,
-        'editing_comment': True,
-    }
-    return render(request, 'blog/detail.html', context)
+        'editing': True,
+    })
 
 
 @login_required

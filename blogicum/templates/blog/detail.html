@@ -31,9 +31,12 @@
             <a class="btn btn-sm text-muted" href="{% url 'blog:post_edit' post.id %}" role="button">
               Отредактировать публикацию
             </a>
-            <a class="btn btn-sm text-muted" href="{% url 'blog:post_delete' post.id %}" role="button">
-              Удалить публикацию
-            </a>
+            <form method="post" action="{% url 'blog:post_delete' post.id %}" style="display: inline;">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm text-muted" onclick="return confirm('Вы уверены, что хотите удалить этот пост?');">
+                Удалить публикацию
+              </button>
+            </form>
           </div>
         {% endif %}
         {% include "includes/../includes/comments.html" %}

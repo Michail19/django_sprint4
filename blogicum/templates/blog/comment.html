@@ -1,9 +1,9 @@
 {% extends "../base.html" %}
 {% load django_bootstrap5 %}
 {% block title %}
-  {% if '/edit_comment/' in request.path %}
+  {% if editing %}
     Редактирование комментария
-  {% else %}
+  {% elif deleting %}
     Удаление комментария
   {% endif %}
 {% endblock %}
@@ -12,25 +12,43 @@
     <div class="col d-flex justify-content-center">
       <div class="card" style="width: 40rem;">
         <div class="card-header">
-          {% if '/edit_comment/' in request.path %}
+          {% if editing %}
             Редактирование комментария
-          {% else %}
+          {% elif deleting %}
             Удаление комментария
           {% endif %}
         </div>
         <div class="card-body">
-          <form method="post"
-            {% if '/edit_comment/' in request.path %}
-              action="{% url 'blog:edit_comment' comment.post_id comment.id %}"
-            {% endif %}>
-            {% csrf_token %}
-            {% if not '/delete_comment/' in request.path %}
+          {% if editing %}
+            <form method="post" action="{% url 'blog:edit_comment' post.id comment.id %}">
+              {% csrf_token %}
               {% bootstrap_form form %}
-            {% else %}
-              <p>{{ comment.text }}</p>
-            {% endif %}
-            {% bootstrap_button button_type="submit" content="Отправить" %}
-          </form>
+              <div class="d-flex gap-2">
+                {% bootstrap_button button_type="submit" content="Сохранить" %}
+                <a href="{% url 'blog:post_detail' post.id %}" class="btn btn-secondary">Отмена</a>
+              </div>
+            </form>
+          {% elif deleting %}
+            <form method="post" action="{% url 'blog:delete_comment' post.id comment.id %}">
+              {% csrf_token %}
+              <p>Вы уверены, что хотите удалить этот комментарий?</p>
+              <div class="card mb-3">
+                <div class="card-body">
+                  <p class="card-text">{{ comment.text|linebreaksbr }}</p>
+                  <p class="card-text">
+                    <small class="text-muted">
+                      Автор: @{{ comment.author.username }} |
+                      {{ comment.created_at|date:"d.m.Y H:i" }}
+                    </small>
+                  </p>
+                </div>
+              </div>
+              <div class="d-flex gap-2">
+                {% bootstrap_button button_type="submit" content="Удалить" button_class="btn-danger" %}
+                <a href="{% url 'blog:post_detail' post.id %}" class="btn btn-secondary">Отмена</a>
+              </div>
+            </form>
+          {% endif %}
         </div>
       </div>
     </div>
