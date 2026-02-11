@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.mail import send_mail
 from django.core.paginator import Paginator
+from django.db.models import Count
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from django.utils import timezone
@@ -19,29 +20,37 @@ def index(request):
         is_published=True,
         category__is_published=True,
         pub_date__lte=timezone.now()
-    ).select_related('category', 'location', 'author').order_by('-pub_date')
+    ).select_related('category', 'location', 'author') \
+     .order_by('-pub_date')
 
     # Пагинация
     paginator = Paginator(post_list, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
-    template = 'blog/index.html'
-    context = {
-        'page_obj': page_obj,
-    }
-    return render(request, template, context)
+    return render(request, 'blog/index.html', {'page_obj': page_obj})
 
 
 def post_detail(request, post_id):
     """Детальная страница поста"""
     # Для автора показываем все посты, для остальных - только опубликованные
     if request.user.is_authenticated:
-        post = get_object_or_404(
-            Post.objects.filter(author=request.user).select_related('category', 'location', 'author'),
+        # Автор видит все свои посты
+        post = Post.objects.select_related('category', 'location', 'author').filter(
             pk=post_id
-        )
+        ).first()
+        if not post:
+            # Если не найден пост с таким pk, пробуем среди опубликованных
+            post = get_object_or_404(
+                Post.objects.filter(
+                    is_published=True,
+                    category__is_published=True,
+                    pub_date__lte=timezone.now()
+                ).select_related('category', 'location', 'author'),
+                pk=post_id
+            )
     else:
+        # Для неавторизованных — только опубликованные
         post = get_object_or_404(
             Post.objects.filter(
                 is_published=True,
@@ -51,21 +60,15 @@ def post_detail(request, post_id):
             pk=post_id
         )
 
-    # Комментарии к посту
     comments = post.comments.all()
 
-    # Форма для добавления комментария
-    comment_form = None
-    if request.user.is_authenticated:
-        comment_form = CommentForm()
+    comment_form = CommentForm() if request.user.is_authenticated else None
 
-    template = 'blog/detail.html'
-    context = {
+    return render(request, 'blog/detail.html', {
         'post': post,
         'comments': comments,
         'form': comment_form,
-    }
-    return render(request, template, context)
+    })
 
 
 def category_posts(request, category_slug):
@@ -79,7 +82,8 @@ def category_posts(request, category_slug):
         category=category,
         is_published=True,
         pub_date__lte=timezone.now()
-    ).select_related('category', 'location', 'author').order_by('-pub_date')
+    ).select_related('category', 'location', 'author') \
+        .order_by('-pub_date')
 
     # Пагинация
     paginator = Paginator(post_list, 10)
@@ -113,6 +117,8 @@ class PostCreateView(LoginRequiredMixin, CreateView):
                 [self.request.user.email],
                 fail_silently=True,
             )
+        else:
+            form.instance.is_published = True
 
         messages.success(self.request, 'Пост успешно создан!')
         return response
