@@ -12,7 +12,7 @@
   <div class="media mb-4">
     <div class="media-body">
       <h5 class="mt-0">
-        <a href="{% url 'blog:profile' comment.author.username %}" name="comment_{{ comment.id }}">
+        <a href="{% url 'users:profile' comment.author.username %}" name="comment_{{ comment.id }}">
           @{{ comment.author.username }}
         </a>
       </h5>
@@ -24,9 +24,10 @@
       <a class="btn btn-sm text-muted" href="{% url 'blog:edit_comment' post.id comment.id %}" role="button">
         Отредактировать комментарий
       </a>
-      <a class="btn btn-sm text-muted" href="{% url 'blog:delete_comment' post.id comment.id %}" role="button">
-        Удалить комментарий
-      </a>
+      <form method="post" action="{% url 'blog:delete_comment' post.id comment.id %}" style="display:inline;">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-sm text-muted">Удалить комментарий</button>
+      </form>
     {% endif %}
   </div>
 {% endfor %}

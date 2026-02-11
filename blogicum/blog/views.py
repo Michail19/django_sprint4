@@ -64,7 +64,7 @@ def post_detail(request, post_id):
     context = {
         'post': post,
         'comments': comments,
-        'comment_form': comment_form,
+        'form': comment_form,
     }
     return render(request, template, context)
 
@@ -118,6 +118,11 @@ class PostCreateView(LoginRequiredMixin, CreateView):
         messages.success(self.request, 'Пост успешно создан!')
         return response
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+
     def get_success_url(self):
         return reverse('users:profile', kwargs={'username': self.request.user.username})  # Используем namespace
 
@@ -135,7 +140,7 @@ class PostUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
     def handle_no_permission(self):
         post = self.get_object()
-        return redirect('post_detail', post_id=post.id)
+        return redirect('blog:post_detail', post_id=post.id)
 
     def form_valid(self, form):
         response = super().form_valid(form)
@@ -143,7 +148,7 @@ class PostUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         return response
 
     def get_success_url(self):
-        return reverse('post_detail', kwargs={'post_id': self.object.id})
+        return reverse('blog:post_detail', kwargs={'post_id': self.object.id})
 
 
 @login_required
@@ -188,26 +193,27 @@ def add_comment(request, post_id):
 
             messages.success(request, 'Комментарий успешно добавлен!')
 
-    return redirect('post_detail', post_id=post_id)
+    return redirect('blog:post_detail', post_id=post_id)
 
 
 @login_required
 def edit_comment(request, post_id, comment_id):
     """Редактирование комментария"""
     comment = get_object_or_404(Comment, id=comment_id, author=request.user)
+    post = get_object_or_404(Post, id=post_id)
 
     if request.method == 'POST':
         form = CommentForm(request.POST, instance=comment)
         if form.is_valid():
             form.save()
             messages.success(request, 'Комментарий успешно отредактирован!')
-            return redirect('post_detail', post_id=post_id)
+            return redirect('blog:post_detail', post_id=post_id)
     else:
         form = CommentForm(instance=comment)
 
     context = {
         'form': form,
-        'post_id': post_id,
+        'post': post,
         'comment': comment,
         'editing_comment': True,
     }
@@ -218,17 +224,14 @@ def edit_comment(request, post_id, comment_id):
 def delete_comment(request, post_id, comment_id):
     """Удаление комментария"""
     comment = get_object_or_404(Comment, id=comment_id, author=request.user)
+    post = get_object_or_404(Post, id=post_id)
 
     if request.method == 'POST':
         comment.delete()
         messages.success(request, 'Комментарий успешно удален!')
-        return redirect('post_detail', post_id=post_id)
+        return redirect('blog:post_detail', post_id=post_id)
 
-    # Отображаем страницу подтверждения удаления
-    return render(request, 'blog/detail.html', {
-        'post': comment.post,
-        'comment_to_delete': comment
-    })
+    return redirect('blog:post_detail', post_id=post_id)
 
 
 # Вспомогательные функции для работы с отложенными постами

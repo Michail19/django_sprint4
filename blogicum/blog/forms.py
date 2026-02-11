@@ -5,6 +5,12 @@ from .models import Post, Comment
 
 class PostForm(forms.ModelForm):
     """Форма для создания и редактирования постов."""
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+
+        self.fields['category'].queryset = self.fields['category'].queryset.filter(is_published=True)
+        self.fields['location'].queryset = self.fields['location'].queryset.filter(is_published=True)
 
     class Meta:
         model = Post
@@ -37,24 +43,12 @@ class PostForm(forms.ModelForm):
         pub_date = self.cleaned_data['pub_date']
 
         # Если пользователь не аутентифицирован (маловероятно в этом контексте)
-        if not hasattr(self, 'request_user') and pub_date > timezone.now():
+        if pub_date > timezone.now() and (not self.user or not self.user.is_authenticated):
             raise forms.ValidationError(
                 'Отложенные публикации могут создавать только авторизованные пользователи'
             )
 
         return pub_date
-
-    def __init__(self, *args, **kwargs):
-        """Инициализация формы с фильтрацией категорий и локаций."""
-        super().__init__(*args, **kwargs)
-        # Показываем только опубликованные категории
-        self.fields['category'].queryset = self.fields['category'].queryset.filter(
-            is_published=True
-        )
-        # Показываем только опубликованные локации
-        self.fields['location'].queryset = self.fields['location'].queryset.filter(
-            is_published=True
-        )
 
 
 class CommentForm(forms.ModelForm):
