@@ -24,8 +24,14 @@
                   href="{% url 'blog:create_post' %}">Написать пост</a></button>
               <button type="button" class="btn btn-outline-primary"><a class="text-decoration-none text-reset"
                   href="{% url 'users:profile' user.username %}">{{ user.username }}</a></button>
-              <button type="button" class="btn btn-outline-primary"><a class="text-decoration-none text-reset"
-                  href="{% url 'users:logout' %}">Выйти</a></button>
+              <button type="button" class="btn btn-outline-primary" style="display: none">
+                <form action="{% url 'users:logout' %}" method="post" class="d-inline">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-outline-primary">
+                    Выйти
+                  </button>
+                </form>
+              </button>
             </div>
           {% else %}
             <div class="btn-group" role="group" aria-label="Basic outlined example">

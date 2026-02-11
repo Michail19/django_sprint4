@@ -26,6 +26,7 @@
           {% bootstrap_form form %}
           <input type="hidden" name="next" value="{{ next }}">
           {% bootstrap_button button_type="submit" content="Войти" %}
+            {{ form.errors }}
         </form>
         <div>
           <a href="{% url 'users:password_reset' %}">Забыли пароль?</a>
