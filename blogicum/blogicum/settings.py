@@ -30,9 +30,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
     'blog.apps.BlogConfig',
     'pages.apps.PagesConfig',
     'users.apps.UsersConfig',
+
+    "django_bootstrap5",
 ]
 
 MIDDLEWARE = [
@@ -58,7 +61,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                'django.template.context_processors.media',  # Добавляем для медиа-файлов
+                'django.template.context_processors.media',
             ],
         },
     },
@@ -143,8 +146,8 @@ EMAIL_FILE_PATH = BASE_DIR / 'sent_emails'
 
 # Authentication settings
 LOGIN_URL = 'login'
-LOGIN_REDIRECT_URL = 'index'
-LOGOUT_REDIRECT_URL = 'index'
+LOGIN_REDIRECT_URL = 'blog:index'
+LOGOUT_REDIRECT_URL = 'blog:index'
 
 # Pagination
 POSTS_PER_PAGE = 10

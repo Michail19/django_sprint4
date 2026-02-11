@@ -22,7 +22,7 @@ class RegistrationView(CreateView):
         """Перенаправляем уже аутентифицированных пользователей."""
         if request.user.is_authenticated:
             messages.info(request, 'Вы уже зарегистрированы.')
-            return redirect('index')
+            return redirect('blog:index')  # Используем namespace
         return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
@@ -35,7 +35,7 @@ class RegistrationView(CreateView):
         return response
 
     def get_success_url(self):
-        return reverse('login')
+        return reverse('users:login')
 
 
 @login_required
@@ -75,8 +75,9 @@ class ProfileUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     model = User
     form_class = ProfileUpdateForm
     template_name = 'blog/edit_profile.html'
-    slug_field = 'username'
-    slug_url_kwarg = 'username'
+
+    def get_object(self):
+        return get_object_or_404(User, username=self.kwargs['username'])
 
     def test_func(self):
         """Проверка, что пользователь редактирует свой профиль."""
@@ -86,7 +87,7 @@ class ProfileUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     def handle_no_permission(self):
         """Обработка отсутствия прав доступа."""
         messages.error(self.request, 'Вы можете редактировать только свой профиль.')
-        return redirect('profile', username=self.request.user.username)
+        return redirect('users:profile', username=self.request.user.username)
 
     def form_valid(self, form):
         """Обработка успешного редактирования."""
@@ -95,7 +96,7 @@ class ProfileUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         return response
 
     def get_success_url(self):
-        return reverse('profile', kwargs={'username': self.object.username})
+        return reverse('users:profile', kwargs={'username': self.object.username})
 
 
 class CustomPasswordChangeView(LoginRequiredMixin, PasswordChangeView):
@@ -113,4 +114,4 @@ class CustomPasswordChangeView(LoginRequiredMixin, PasswordChangeView):
 def password_change_done(request):
     """Страница успешного изменения пароля."""
     messages.success(request, 'Пароль успешно изменен!')
-    return redirect('profile', username=request.user.username)
+    return redirect('users:profile', username=request.user.username)

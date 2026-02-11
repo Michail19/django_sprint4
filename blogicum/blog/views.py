@@ -95,6 +95,7 @@ def category_posts(request, category_slug):
     return render(request, template, context)
 
 
+# В PostCreateView исправляем get_success_url:
 class PostCreateView(LoginRequiredMixin, CreateView):
     """Создание нового поста"""
     model = Post
@@ -105,7 +106,6 @@ class PostCreateView(LoginRequiredMixin, CreateView):
         form.instance.author = self.request.user
         response = super().form_valid(form)
 
-        # Если пост отложенный, отправляем уведомление
         if form.instance.pub_date > timezone.now():
             send_mail(
                 'Пост запланирован',
@@ -119,7 +119,7 @@ class PostCreateView(LoginRequiredMixin, CreateView):
         return response
 
     def get_success_url(self):
-        return reverse('profile', kwargs={'username': self.request.user.username})
+        return reverse('users:profile', kwargs={'username': self.request.user.username})  # Используем namespace
 
 
 class PostUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
@@ -154,7 +154,7 @@ def delete_post(request, post_id):
     if request.method == 'POST':
         post.delete()
         messages.success(request, 'Пост успешно удален!')
-        return redirect('profile', username=request.user.username)
+        return redirect('users:profile', username=request.user.username)  # Используем namespace
 
     # Отображаем страницу подтверждения удаления
     return render(request, 'blog/detail.html', {
