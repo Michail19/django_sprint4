@@ -5,9 +5,6 @@ from . import views
 app_name = 'users'
 
 urlpatterns = [
-    # Аутентификация
-    path('auth/', include('django.contrib.auth.urls')),
-
     # Регистрация
     path('registration/', views.RegistrationView.as_view(), name='registration'),
 

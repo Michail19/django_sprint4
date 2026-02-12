@@ -8,6 +8,7 @@ urlpatterns = [
     path('', include('blog.urls')),
     path('', include('pages.urls')),
     path('auth/', include('users.urls')),
+    path('auth/', include('django.contrib.auth.urls')),
 ]
 
 handler403 = 'pages.views.csrf_failure'

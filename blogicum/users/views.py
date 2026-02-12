@@ -54,7 +54,9 @@ def profile(request, username):
         posts_query = Post.objects.filter(
             author=profile_user,
             pub_date__lte=timezone.now(),
-            is_published=True
+            is_published=True,
+            category__is_published=True,
+            location__is_published=True
         )
 
     # Сортируем по дате публикации

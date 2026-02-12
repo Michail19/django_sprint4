@@ -81,7 +81,7 @@ class Post(PublishedModel):
         get_user_model(),
         on_delete=models.CASCADE,
         verbose_name='Автор публикации',
-        related_name='posts'  # Добавляем related_name для удобства
+        related_name='blog_posts'
     )
     location = models.ForeignKey(
         Location,
@@ -151,7 +151,7 @@ class Comment(models.Model):
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='posts'
+        related_name='blog_comments'
     )
 
     created_at = models.DateTimeField(auto_now_add=True)

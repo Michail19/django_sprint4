@@ -18,6 +18,7 @@ def index(request):
     post_list = Post.objects.filter(
         is_published=True,
         category__is_published=True,
+        location__is_published=True,
         pub_date__lte=timezone.now()
     ).select_related('category', 'location', 'author') \
      .order_by('-pub_date')
@@ -80,6 +81,7 @@ def category_posts(request, category_slug):
     post_list = Post.objects.filter(
         category=category,
         is_published=True,
+        location__is_published=True,
         pub_date__lte=timezone.now()
     ).select_related('category', 'location', 'author') \
         .order_by('-pub_date')
