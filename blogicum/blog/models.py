@@ -1,3 +1,4 @@
+from django.contrib.auth.models import User
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.utils import timezone
@@ -140,33 +141,23 @@ class Comment(models.Model):
         'Текст комментария',
         help_text='Введите текст комментария'
     )
+
     post = models.ForeignKey(
         Post,
         on_delete=models.CASCADE,
-        verbose_name='Пост',
-        related_name='comments'  # Для обратного доступа Post.comments.all()
-    )
-    author = models.ForeignKey(
-        get_user_model(),
-        on_delete=models.CASCADE,
-        verbose_name='Автор комментария',
-        related_name='comments'  # Для обратного доступа User.comments.all()
-    )
-    created_at = models.DateTimeField(
-        'Дата публикации',
-        auto_now_add=True
-    )
-    updated_at = models.DateTimeField(
-        'Дата последнего редактирования',
-        auto_now=True,
-        null=True,
-        blank=True
+        related_name='comments'
     )
 
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
     class Meta:
-        verbose_name = 'комментарий'
-        verbose_name_plural = 'Комментарии'
-        ordering = ['created_at']  # Сортировка по времени создания (старые -> новые)
+        ordering = ('created_at',)
+
 
     def __str__(self):
         return f'Комментарий {self.author} к посту "{self.post.title}"'
