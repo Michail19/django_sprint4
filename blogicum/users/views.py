@@ -44,14 +44,14 @@ def profile(request, username):
     profile_user = get_object_or_404(User, username=username)
 
     # Получаем посты пользователя
-    posts_query = Post.objects.filter(author=profile_user)
+    posts_query = Post.objects.all()
 
     # Если пользователь не владелец профиля, показываем только опубликованные посты
     if request.user != profile_user:
         posts_query = posts_query.filter(
             is_published=True,
-            category__is_published=True,
-            pub_date__lte=timezone.now()
+            pub_date__lte=timezone.now(),
+            category__is_published=True
         )
 
     # Сортируем по дате публикации
