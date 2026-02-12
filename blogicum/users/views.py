@@ -3,11 +3,12 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views.generic import CreateView, UpdateView
 from django.contrib.auth.models import User
-from django.urls import reverse, reverse_lazy
+from django.urls import reverse
 from django.utils import timezone
 from django.core.paginator import Paginator
 from django.contrib import messages
 from django.contrib.auth.views import PasswordChangeView
+from django.conf import settings
 
 from .forms import RegistrationForm, ProfileUpdateForm
 from blog.models import Post
@@ -47,18 +48,20 @@ def profile(request, username):
     posts_query = Post.objects.all()
 
     # Если пользователь не владелец профиля, показываем только опубликованные посты
-    if request.user != profile_user:
-        posts_query = posts_query.filter(
-            is_published=True,
+    if request.user == profile_user:
+        posts_query = Post.objects.filter(author=profile_user)
+    else:
+        posts_query = Post.objects.filter(
+            author=profile_user,
             pub_date__lte=timezone.now(),
-            category__is_published=True
+            is_published=True
         )
 
     # Сортируем по дате публикации
     posts_query = posts_query.select_related('category', 'location').order_by('-pub_date')
 
     # Пагинация - 10 постов на страницу
-    paginator = Paginator(posts_query, 10)
+    paginator = Paginator(posts_query, settings.POSTS_PER_PAGE)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 

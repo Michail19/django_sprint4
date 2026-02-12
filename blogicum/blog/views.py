@@ -23,7 +23,7 @@ def index(request):
      .order_by('-pub_date')
 
     # Пагинация
-    paginator = Paginator(post_list, 10)
+    paginator = Paginator(post_list, settings.POSTS_PER_PAGE)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
@@ -85,7 +85,7 @@ def category_posts(request, category_slug):
         .order_by('-pub_date')
 
     # Пагинация
-    paginator = Paginator(post_list, 10)
+    paginator = Paginator(post_list, settings.POSTS_PER_PAGE)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 

@@ -16,8 +16,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-h8d%9-%eukoyf*v797#ea=87211in3rl+hysc=2(vik_bx5eb8'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
+DEBUG = False
 ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 
@@ -137,8 +136,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Custom error handlers
 CSRF_FAILURE_VIEW = 'pages.views.csrf_failure'
-handler404 = 'pages.views.page_not_found'
-handler500 = 'pages.views.server_error'
 
 # Email settings (file backend for development)
 EMAIL_BACKEND = 'django.core.mail.backends.filebased.EmailBackend'
