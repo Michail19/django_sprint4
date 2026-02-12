@@ -17,11 +17,27 @@ SECRET_KEY = 'django-insecure-h8d%9-%eukoyf*v797#ea=87211in3rl+hysc=2(vik_bx5eb8
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-
 ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
+# Application definition
+
+EMAIL_BACKEND = 'django.core.mail.backends.filebased.EmailBackend'
+
+EMAIL_FILE_PATH = BASE_DIR / 'sent_emails'
+
+MEDIA_ROOT = BASE_DIR / 'media'
+
+LOGIN_REDIRECT_URL = 'blog:index'
+
+LOGIN_URL = 'login'
+
+CSRF_FAILURE_VIEW = 'pages.views.csrf_failure'
 
 # Application definition
+
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',
+]
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -30,12 +46,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-
     'blog.apps.BlogConfig',
     'pages.apps.PagesConfig',
-    'users.apps.UsersConfig',
-
-    "django_bootstrap5",
+    'django_bootstrap5',
 ]
 
 MIDDLEWARE = [
@@ -50,10 +63,12 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'blogicum.urls'
 
+TEMPLATES_DIR = BASE_DIR / 'templates'
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],
+        'DIRS': [TEMPLATES_DIR],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -61,7 +76,6 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                'django.template.context_processors.media',
             ],
         },
     },
@@ -90,9 +104,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
     {
         'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-        'OPTIONS': {
-            'min_length': 8,
-        }
     },
     {
         'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
@@ -122,42 +133,7 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
-STATICFILES_DIRS = [
-    BASE_DIR / 'static_dev',
-]
-
-# Media files
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
-
 # Default primary key field type
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-# Custom error handlers
-CSRF_FAILURE_VIEW = 'pages.views.csrf_failure'
-handler404 = 'pages.views.page_not_found'
-handler500 = 'pages.views.server_error'
-
-# Email settings (file backend for development)
-EMAIL_BACKEND = 'django.core.mail.backends.filebased.EmailBackend'
-EMAIL_FILE_PATH = BASE_DIR / 'sent_emails'
-
-# Authentication settings
-LOGIN_URL = 'login'
-LOGIN_REDIRECT_URL = 'blog:index'
-LOGOUT_REDIRECT_URL = 'blog:index'
-
-# Pagination
-POSTS_PER_PAGE = 10
-
-# Messages framework
-from django.contrib.messages import constants as messages
-MESSAGE_TAGS = {
-    messages.SUCCESS: 'alert-success',
-    messages.ERROR: 'alert-danger',
-    messages.WARNING: 'alert-warning',
-    messages.INFO: 'alert-info',
-    messages.DEBUG: 'alert-secondary',
-}

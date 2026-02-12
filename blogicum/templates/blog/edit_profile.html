@@ -32,7 +32,7 @@
                     {% endfor %}
 
                     <div class="d-grid gap-2 d-md-flex justify-content-md-between">
-                        <a href="{% url 'users:profile' object.username %}" class="btn btn-secondary">Отмена</a>
+                        <a href="{% url 'users:profile' request.user.username %}" class="btn btn-secondary">Отмена</a>
                         <button type="submit" class="btn btn-primary">Сохранить изменения</button>
                     </div>
                 </form>
