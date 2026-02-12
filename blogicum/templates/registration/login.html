@@ -1,4 +1,4 @@
-{% extends "../base.html" %}
+{% extends "base.html" %}
 {% load django_bootstrap5 %}
 {% block content %}
   {% if next %}
@@ -26,10 +26,9 @@
           {% bootstrap_form form %}
           <input type="hidden" name="next" value="{{ next }}">
           {% bootstrap_button button_type="submit" content="Войти" %}
-            {{ form.errors }}
         </form>
         <div>
-          <a href="{% url 'users:password_reset' %}">Забыли пароль?</a>
+          <a href="{% url 'password_reset' %}">Забыли пароль?</a>
         </div>
       </div>
     </div>
